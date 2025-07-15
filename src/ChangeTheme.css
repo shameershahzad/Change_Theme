@@ -1,0 +1,13 @@
+#navbarDiv{
+    height:50px;
+    width:700px;
+    border:2px solid rgb(216, 202, 176);
+    margin-left: 280px;
+    border-radius: 20px;
+    display:flex;
+    justify-content: space-evenly;
+    text-align: center;
+    align-items: center;
+}
+
+
