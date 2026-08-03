@@ -12,14 +12,16 @@ jobs:
       - name: Check for placeholder commands
         shell: powershell
         run: |
-          Write-Host "DEBUG: Current commit checked out:"
-          git rev-parse HEAD
           $content = Get-Content .github/workflows/ci-workflow-template.yml -Raw
           $marker = "build_test_lint:"
-          $index = $content.IndexOf($marker)
-          Write-Host "DEBUG: marker found at index: $index"
+          $index = $content.LastIndexOf($marker)
           if ($index -lt 0) {
             Write-Host "::error::Could not find the build_test_lint job in ci-workflow-template.yml."
+            exit 1
+          }
+          $section = $content.Substring($index)
+          if ($section -match "REPLACE ME") {
+            Write-Host "::error::This workflow still has placeholder build/test/lint commands. A DevOps engineer must replace them below (in .github/workflows/ci-workflow-template.yml) before this pipeline can run."
             exit 1
           }
           $section = $content.Substring($index)
