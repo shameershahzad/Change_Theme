@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check for placeholder commands
-        shell: pwsh
+        shell: powershell
         run: |
           $content = Get-Content .github/workflows/ci-workflow-template.yml -Raw
           $marker = "build_test_lint:"
@@ -33,13 +33,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Trigger Sentra re-scan
         id: trigger
-        shell: pwsh
+        shell: powershell
         run: |
           $body = @{ pr_number = ${{ github.event.pull_request.number }} } | ConvertTo-Json
           $response = Invoke-RestMethod -Uri "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-rescan-for-pr" -Method POST -Headers @{ "X-Sentra-Api-Key" = "${{ secrets.SENTRA_API_KEY }}" } -ContentType "application/json" -Body $body
           "scan_id=$($response.scan_id)" >> $env:GITHUB_OUTPUT
       - name: Wait for scan to complete
-        shell: pwsh
+        shell: powershell
         run: |
           $scanId = "${{ steps.trigger.outputs.scan_id }}"
           for ($i = 0; $i -lt 60; $i++) {
@@ -60,7 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run project build/test/lint
-        shell: pwsh
+        shell: powershell
         run: |
           Write-Host "Build step OK"
           Write-Host "Test step OK"
