@@ -72,3 +72,5 @@ jobs:
           Write-Host "Build step OK"
           Write-Host "Test step OK"
           Write-Host "Lint step OK"
+
+# trigger rerun
