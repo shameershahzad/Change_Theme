@@ -1,0 +1,59 @@
+name: Sentra CI/CD Pipeline
+
+on:
+  pull_request:
+
+jobs:
+  gateway:
+    name: Gateway - Verify Pipeline Configured
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for placeholder commands
+        run: |
+          if grep -q "REPLACE ME" .github/workflows/ci-workflow-template.yml; then
+            echo "::error::This workflow still has placeholder build/test/lint commands. A DevOps engineer must replace them below (in .github/workflows/ci-workflow-template.yml) before this pipeline can run."
+            exit 1
+          fi
+
+  rescan:
+    name: Sentra Blind Re-scan
+    needs: gateway
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Sentra re-scan
+        id: trigger
+        run: |
+          RESPONSE=$(curl -sf -X POST "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-rescan-for-pr" \
+            -H "X-Sentra-Api-Key: ${{ secrets.SENTRA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"pr_number\": ${{ github.event.pull_request.number }}}")
+          SCAN_ID=$(echo "$RESPONSE" | grep -o '"scan_id":"[^"]*"' | cut -d'"' -f4)
+          echo "scan_id=$SCAN_ID" >> "$GITHUB_OUTPUT"
+      - name: Wait for scan to complete
+        run: |
+          SCAN_ID="${{ steps.trigger.outputs.scan_id }}"
+          for i in $(seq 1 60); do
+            STATUS=$(curl -sf "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-scan-status/$SCAN_ID" \
+              -H "X-Sentra-Api-Key: ${{ secrets.SENTRA_API_KEY }}" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+            echo "Scan status: $STATUS"
+            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Timed out waiting for Sentra scan to finish."
+          exit 1
+
+  build_test_lint:
+    name: Build, Test & Lint
+    needs: gateway
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run project build/test/lint
+        run: |
+          echo "REPLACE ME: add your real build command"
+          echo "REPLACE ME: add your real test command"
+          echo "REPLACE ME: add your real lint command"
