@@ -10,13 +10,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check for placeholder commands
-        shell: bash
+        shell: pwsh
         run: |
-          SECTION=$(awk '/^  build_test_lint:/,0' .github/workflows/ci-workflow-template.yml)
-          if echo "$SECTION" | grep -q "REPLACE ME"; then
-            echo "::error::This workflow still has placeholder build/test/lint commands. A DevOps engineer must replace them below (in .github/workflows/ci-workflow-template.yml) before this pipeline can run."
+          $content = Get-Content .github/workflows/ci-workflow-template.yml -Raw
+          $marker = "build_test_lint:"
+          $index = $content.IndexOf($marker)
+          if ($index -lt 0) {
+            Write-Host "::error::Could not find the build_test_lint job in ci-workflow-template.yml."
             exit 1
-          fi
+          }
+          $section = $content.Substring($index)
+          if ($section -match "REPLACE ME") {
+            Write-Host "::error::This workflow still has placeholder build/test/lint commands. A DevOps engineer must replace them below (in .github/workflows/ci-workflow-template.yml) before this pipeline can run."
+            exit 1
+          }
 
   rescan:
     name: Sentra Blind Re-scan
@@ -26,28 +33,24 @@ jobs:
       - uses: actions/checkout@v4
       - name: Trigger Sentra re-scan
         id: trigger
-        shell: bash
+        shell: pwsh
         run: |
-          RESPONSE=$(curl -sf -X POST "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-rescan-for-pr" \
-            -H "X-Sentra-Api-Key: ${{ secrets.SENTRA_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"pr_number\": ${{ github.event.pull_request.number }}}")
-          SCAN_ID=$(echo "$RESPONSE" | grep -o '"scan_id":"[^"]*"' | cut -d'"' -f4)
-          echo "scan_id=$SCAN_ID" >> "$GITHUB_OUTPUT"
+          $body = @{ pr_number = ${{ github.event.pull_request.number }} } | ConvertTo-Json
+          $response = Invoke-RestMethod -Uri "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-rescan-for-pr" -Method POST -Headers @{ "X-Sentra-Api-Key" = "${{ secrets.SENTRA_API_KEY }}" } -ContentType "application/json" -Body $body
+          "scan_id=$($response.scan_id)" >> $env:GITHUB_OUTPUT
       - name: Wait for scan to complete
-        shell: bash
+        shell: pwsh
         run: |
-          SCAN_ID="${{ steps.trigger.outputs.scan_id }}"
-          for i in $(seq 1 60); do
-            STATUS=$(curl -sf "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-scan-status/$SCAN_ID" \
-              -H "X-Sentra-Api-Key: ${{ secrets.SENTRA_API_KEY }}" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
-            echo "Scan status: $STATUS"
-            if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ]; then
+          $scanId = "${{ steps.trigger.outputs.scan_id }}"
+          for ($i = 0; $i -lt 60; $i++) {
+            $status = Invoke-RestMethod -Uri "http://localhost:8000/api/projects/${{ vars.SENTRA_PROJECT_ID }}/ci-scan-status/$scanId" -Headers @{ "X-Sentra-Api-Key" = "${{ secrets.SENTRA_API_KEY }}" }
+            Write-Host "Scan status: $($status.status)"
+            if ($status.status -eq "completed" -or $status.status -eq "failed") {
               exit 0
-            fi
-            sleep 10
-          done
-          echo "::error::Timed out waiting for Sentra scan to finish."
+            }
+            Start-Sleep -Seconds 10
+          }
+          Write-Host "::error::Timed out waiting for Sentra scan to finish."
           exit 1
 
   build_test_lint:
@@ -57,8 +60,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run project build/test/lint
-        shell: bash
+        shell: pwsh
         run: |
-          echo "Build step OK"
-          echo "Test step OK"
-          echo "Lint step OK"
+          Write-Host "Build step OK"
+          Write-Host "Test step OK"
+          Write-Host "Lint step OK"
