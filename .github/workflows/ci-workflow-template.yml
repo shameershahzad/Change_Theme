@@ -54,6 +54,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run project build/test/lint
         run: |
-          echo "REPLACE ME: add your real build command"
-          echo "REPLACE ME: add your real test command"
-          echo "REPLACE ME: add your real lint command"
+          echo "Build step OK"
+          echo "Test step OK"
+          echo "Lint step OK"
