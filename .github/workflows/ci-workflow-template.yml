@@ -11,7 +11,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check for placeholder commands
         run: |
-          if grep -q "REPLACE ME" .github/workflows/ci-workflow-template.yml; then
+          SECTION=$(awk '/^  build_test_lint:/,0' .github/workflows/ci-workflow-template.yml)
+          if echo "$SECTION" | grep -q "REPLACE ME"; then
             echo "::error::This workflow still has placeholder build/test/lint commands. A DevOps engineer must replace them below (in .github/workflows/ci-workflow-template.yml) before this pipeline can run."
             exit 1
           fi
