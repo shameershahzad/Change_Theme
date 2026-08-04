@@ -1,9 +1,8 @@
 // Intentionally vulnerable code for testing Sentra's real-data pipeline
-const AWS_SECRET_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE1234567890ABCD";
+const AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7EXAMPLE";
 
-function connectToDatabase(userInput) {
-  const query = "SELECT * FROM users WHERE username = '" + userInput + "'";
-  return query;
+function runUserCommand(userInput) {
+  return eval(userInput);
 }
 
-module.exports = { connectToDatabase };
+module.exports = { runUserCommand };
