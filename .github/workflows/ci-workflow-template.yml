@@ -62,6 +62,7 @@ jobs:
       - name: Run project build/test/lint
         shell: powershell
         run: |
-          Write-Host "REPLACE ME: add your real build command"
-          Write-Host "REPLACE ME: add your real test command"
-          Write-Host "REPLACE ME: add your real lint command"
+          npm install
+          npm run build
+          npm run lint
+          npm test
