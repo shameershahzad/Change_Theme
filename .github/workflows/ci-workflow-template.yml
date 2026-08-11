@@ -78,3 +78,4 @@ jobs:
 
           Write-Host "::error::Timed out waiting for Sentra scan to finish."
           exit 1
+
